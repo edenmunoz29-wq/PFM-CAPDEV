@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Café — Live Q&A Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e1a;
+  --surface: #111827;
+  --surface2: #1a2236;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #f0f4ff;
+  --text2: #8899bb;
+  --text3: #4a5a7a;
+  --accent: #3b82f6;
+  --accent2: #6366f1;
+  --glow: rgba(59,130,246,0.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* Background grid */
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+
+/* Header */
+.header{position:relative;z-index:10;background:rgba(10,14,26,0.9);border-bottom:1px solid var(--border2);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(12px)}
+.header-left{display:flex;align-items:center;gap:14px}
+.logo-mark{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 0 20px rgba(99,102,241,0.4)}
+.header-title{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--text)}
+.header-sub{font-size:11px;color:var(--text2);margin-top:1px;font-family:'JetBrains Mono',monospace;letter-spacing:.04em}
+.live-badge{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#34d399;padding:5px 12px;border-radius:999px;border:1px solid rgba(52,211,153,0.25);background:rgba(52,211,153,0.08);letter-spacing:.06em;text-transform:uppercase}
+.pulse{width:7px;height:7px;border-radius:50%;background:#34d399;animation:pulse 1.6s infinite;box-shadow:0 0 6px #34d399}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+
+/* Tabs */
+.tabs{position:relative;z-index:10;display:flex;padding:0 28px;background:rgba(10,14,26,0.7);border-bottom:1px solid var(--border);backdrop-filter:blur(12px)}
+.tab{padding:12px 20px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .2s,border-color .2s;display:flex;align-items:center;gap:7px;letter-spacing:.01em}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-icon{font-size:14px}
+
+/* Views */
+.view{display:none;padding:28px;max-width:1000px;margin:0 auto;position:relative;z-index:5}
+.view.active{display:block}
+
+/* Team picker */
+.section-heading{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+.color-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:28px}
+.color-btn{padding:12px 16px;border-radius:10px;border:1px solid;cursor:pointer;font-size:13px;font-weight:600;transition:transform .15s,box-shadow .15s;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:.01em}
+.color-btn:hover{transform:translateY(-2px)}
+.color-btn.selected{transform:translateY(-2px);box-shadow:0 0 0 2px var(--accent),0 8px 24px rgba(0,0,0,0.4)}
+.color-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+/* Question cards */
+.q-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:12px;transition:border-color .2s}
+.q-card:focus-within{border-color:var(--border2)}
+.q-meta{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.q-badge{font-size:10px;font-weight:600;color:var(--accent);background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);padding:3px 9px;border-radius:999px;letter-spacing:.06em;text-transform:uppercase;font-family:'JetBrains Mono',monospace}
+.q-text{font-size:14px;font-weight:500;margin-bottom:12px;line-height:1.6;color:var(--text)}
+textarea{width:100%;padding:11px 14px;border-radius:8px;border:1px solid var(--border2);font-size:13px;line-height:1.6;resize:vertical;min-height:80px;font-family:'Inter',sans-serif;background:var(--surface2);color:var(--text);transition:border-color .2s,box-shadow .2s}
+textarea::placeholder{color:var(--text3)}
+textarea:focus{outline:none;border-color:rgba(59,130,246,0.5);box-shadow:0 0 0 3px rgba(59,130,246,0.1)}
+
+/* Submit */
+.submit-wrap{margin-top:4px}
+.submit-btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .15s;letter-spacing:.01em;font-family:'Inter',sans-serif}
+.submit-btn:hover{opacity:.9;transform:translateY(-1px)}
+.submit-btn:active{transform:translateY(0)}
+.submit-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.status-msg{text-align:center;font-size:12px;color:var(--text2);padding:8px 0;min-height:28px;font-family:'JetBrains Mono',monospace}
+.status-msg.ok{color:#34d399}
+.status-msg.err{color:#f87171}
+
+/* Team indicator */
+.team-indicator{display:inline-flex;align-items:center;gap:10px;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:20px;border:1px solid}
+.ti-dot{width:10px;height:10px;border-radius:50%}
+
+/* Main screen */
+.main-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.toolbar-left{display:flex;align-items:center;gap:12px}
+.resp-count{font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace}
+.icon-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:12px;font-weight:500;border-radius:7px;border:1px solid var(--border2);background:var(--surface);cursor:pointer;color:var(--text2);transition:background .15s,color .15s;font-family:'Inter',sans-serif}
+.icon-btn:hover{background:var(--surface2);color:var(--text)}
+.icon-btn.danger{color:#f87171;border-color:rgba(248,113,113,0.2)}
+.icon-btn.danger:hover{background:rgba(248,113,113,0.08)}
+
+/* Legend */
+.legend{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:24px}
+.lchip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:4px 11px;border-radius:999px;border:1px solid;transition:opacity .2s;letter-spacing:.02em}
+.lchip.inactive{opacity:.28}
+.ldot{width:7px;height:7px;border-radius:50%}
+
+/* Q sections on main screen */
+.q-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:18px;overflow:hidden}
+.q-section-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:14px}
+.q-number-badge{font-size:10px;font-weight:700;color:var(--accent);background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);padding:3px 9px;border-radius:999px;letter-spacing:.07em;white-space:nowrap;font-family:'JetBrains Mono',monospace;margin-top:2px}
+.q-section-text{font-size:14px;font-weight:500;color:var(--text);line-height:1.5}
+.answers-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0;padding:0}
+.answer-card{padding:14px 16px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);border-left:3px solid;animation:fadeUp .3s ease}
+.answer-card:last-child{border-right:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.answer-team-tag{font-size:10px;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace}
+.atag-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.answer-text{font-size:13px;line-height:1.6;color:var(--text)}
+.no-answers-row{padding:20px;font-size:13px;color:var(--text3);font-style:italic}
+.empty-state{text-align:center;padding:60px 24px;color:var(--text3);font-size:14px}
+.empty-icon{font-size:32px;margin-bottom:12px;opacity:.4}
+
+.fs-hint{font-size:11px;color:var(--text3);text-align:right;margin-bottom:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.03em}
+
+/* Divider on main */
+.section-divider{height:1px;background:var(--border);margin:4px 0}
+
+/* Scanline effect on header */
+.header::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.005) 2px,rgba(255,255,255,0.005) 4px);pointer-events:none}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo-mark">W</div>
+    <div>
+      <div class="header-title">World Café — Live Q&amp;A Board</div>
+      <div class="header-sub">REAL-TIME COLLABORATIVE RESPONSE SYSTEM</div>
+    </div>
+  </div>
+  <span class="live-badge"><span class="pulse"></span>Live</span>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('team')"><span class="tab-icon">⬡</span> Team panel</button>
+  <button class="tab" onclick="switchTab('main')"><span class="tab-icon">◈</span> Main screen</button>
+</div>
+
+<div class="view active" id="view-team">
+  <div id="team-picker">
+    <p class="section-heading">Select your team</p>
+    <div class="color-grid" id="color-btns"></div>
+  </div>
+  <div id="q-form" style="display:none">
+    <div id="team-indicator-wrap"></div>
+    <p class="section-heading">Your responses</p>
+    <div id="questions-container"></div>
+    <div class="submit-wrap">
+      <button class="submit-btn" id="submit-btn" onclick="submitAnswers()">Submit answers</button>
+      <div class="status-msg" id="submit-status"></div>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-main">
+  <div class="main-toolbar">
+    <div class="toolbar-left">
+      <span class="live-badge"><span class="pulse"></span>Live</span>
+      <span class="resp-count" id="response-count"></span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="icon-btn danger" onclick="clearAll()">✕ Clear all</button>
+    </div>
+  </div>
+  <div class="fs-hint">F11 → fullscreen on projector</div>
+  <div class="legend" id="team-legend"></div>
+  <div id="main-content"></div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBeIdeInKP-iZcivr7RxeiWSQ-jdz8lOfU",
+    authDomain: "public-financial-management.firebaseapp.com",
+    databaseURL: "https://public-financial-management-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "public-financial-management",
+    storageBucket: "public-financial-management.firebasestorage.app",
+    messagingSenderId: "127654548513",
+    appId: "1:127654548513:web:0211e20e9dd5c903163f60",
+    measurementId: "G-JEWFF39RDD"
+  };
+
+  // ── EDIT YOUR QUESTIONS HERE ──────────────────────────────────────────────
+  const QUESTIONS = [
+    { id: 'q1', text: 'What are the biggest bottlenecks you see in our current process, and what would you prioritize fixing first?' },
+    { id: 'q2', text: 'What data or evidence would help us make a stronger case for the changes you are proposing?' },
+    { id: 'q3', text: 'What risks or unintended consequences should we watch out for?' },
+    { id: 'q4', text: 'If you had full authority and resources, what one thing would you do differently starting next week?' },
+  ];
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const TEAMS = [
+    { id: 'blue',   label: 'Team Blue',   bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.35)',  text: '#93c5fd', dot: '#3b82f6' },
+    { id: 'violet', label: 'Team Violet', bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.35)', text: '#c4b5fd', dot: '#8b5cf6' },
+    { id: 'emerald',label: 'Team Emerald',bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.35)', text: '#6ee7b7', dot: '#10b981' },
+    { id: 'amber',  label: 'Team Amber',  bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.35)', text: '#fcd34d', dot: '#f59e0b' },
+    { id: 'rose',   label: 'Team Rose',   bg: 'rgba(244,63,94,0.1)',  border: 'rgba(244,63,94,0.35)',  text: '#fda4af', dot: '#f43f5e' },
+    { id: 'cyan',   label: 'Team Cyan',   bg: 'rgba(6,182,212,0.1)',  border: 'rgba(6,182,212,0.35)',  text: '#67e8f9', dot: '#06b6d4' },
+  ];
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const answersRef = ref(db, 'worldcafe/answers');
+
+  let selectedTeam = null;
+
+  const colorGrid = document.getElementById('color-btns');
+  TEAMS.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'color-btn';
+    btn.id = 'cbtn-' + t.id;
+    btn.style.cssText = `background:${t.bg};border-color:${t.border};color:${t.text}`;
+    btn.innerHTML = `<span class="color-dot" style="background:${t.dot}"></span>${t.label}`;
+    btn.onclick = () => selectTeam(t);
+    colorGrid.appendChild(btn);
+  });
+
+  function selectTeam(team) {
+    selectedTeam = team;
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('cbtn-' + team.id).classList.add('selected');
+    document.getElementById('q-form').style.display = 'block';
+    document.getElementById('team-indicator-wrap').innerHTML =
+      `<div class="team-indicator" style="background:${team.bg};border-color:${team.border};color:${team.text}">
+        <span class="ti-dot" style="background:${team.dot};box-shadow:0 0 8px ${team.dot}"></span>${team.label}
+       </div>`;
+    buildQForm();
+  }
+
+  function buildQForm() {
+    const c = document.getElementById('questions-container');
+    c.innerHTML = QUESTIONS.map((q, i) =>
+      `<div class="q-card">
+        <div class="q-meta"><span class="q-badge">Q${i + 1} / ${QUESTIONS.length}</span></div>
+        <div class="q-text">${q.text}</div>
+        <textarea id="ans-${q.id}" placeholder="Type your team's answer here…" rows="3"></textarea>
+       </div>`
+    ).join('');
+  }
+
+  window.submitAnswers = async function () {
+    if (!selectedTeam) return;
+    const btn = document.getElementById('submit-btn');
+    const status = document.getElementById('submit-status');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    status.className = 'status-msg';
+    const teamAnswers = {};
+    QUESTIONS.forEach(q => {
+      const v = document.getElementById('ans-' + q.id)?.value?.trim();
+      if (v) teamAnswers[q.id] = v;
+    });
+    try {
+      await set(ref(db, `worldcafe/answers/${selectedTeam.id}`), {
+        team: selectedTeam,
+        answers: teamAnswers,
+        ts: Date.now()
+      });
+      status.className = 'status-msg ok';
+      status.textContent = '✓ Submitted successfully — you can update and resubmit anytime';
+      setTimeout(() => { status.textContent = ''; status.className = 'status-msg'; }, 5000);
+    } catch (e) {
+      status.className = 'status-msg err';
+      status.textContent = '⚠ ' + e.message;
+    }
+    btn.disabled = false; btn.textContent = 'Submit answers';
+  };
+
+  window.switchTab = function (tab) {
+    document.querySelectorAll('.tab').forEach((t, i) =>
+      t.classList.toggle('active', (i === 0 && tab === 'team') || (i === 1 && tab === 'main'))
+    );
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + tab).classList.add('active');
+  };
+
+  window.clearAll = async function () {
+    if (!confirm('Clear ALL submitted answers? This cannot be undone.')) return;
+    await remove(answersRef);
+  };
+
+  function renderMain(data) {
+    const responded = Object.keys(data).length;
+    document.getElementById('response-count').textContent =
+      `${responded} / ${TEAMS.length} teams responded`;
+
+    document.getElementById('team-legend').innerHTML = TEAMS.map(t => {
+      const has = data[t.id];
+      return `<span class="lchip ${has ? '' : 'inactive'}" style="background:${has ? t.bg : 'transparent'};border-color:${t.border};color:${t.text}">
+        <span class="ldot" style="background:${t.dot}${has ? ';box-shadow:0 0 5px ' + t.dot : ''}"></span>${t.label}${has ? ' ✓' : ''}
+      </span>`;
+    }).join('');
+
+    if (responded === 0) {
+      document.getElementById('main-content').innerHTML =
+        `<div class="empty-state"><div class="empty-icon">◈</div>Waiting for teams to submit their answers…</div>`;
+      return;
+    }
+
+    document.getElementById('main-content').innerHTML = QUESTIONS.map((q, i) => {
+      const cards = TEAMS.map(t => {
+        const ans = data[t.id]?.answers?.[q.id];
+        if (!ans) return '';
+        return `<div class="answer-card" style="background:${t.bg};border-left-color:${t.dot}">
+          <div class="answer-team-tag" style="color:${t.text}">
+            <span class="atag-dot" style="background:${t.dot};box-shadow:0 0 5px ${t.dot}"></span>${t.label}
+          </div>
+          <div class="answer-text">${ans}</div>
+        </div>`;
+      }).join('');
+
+      return `<div class="q-section">
+        <div class="q-section-header">
+          <span class="q-number-badge">Q${i + 1}</span>
+          <div class="q-section-text">${q.text}</div>
+        </div>
+        <div class="answers-grid">${cards || '<div class="no-answers-row">No answers submitted yet.</div>'}</div>
+      </div>`;
+    }).join('');
+  }
+
+  onValue(answersRef, snap => {
+    renderMain(snap.val() || {});
+  });
+</script>
+</body>
+</html>
