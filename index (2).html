@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Café — Live Q&A Board</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
+
+  .header { background: #fff; border-bottom: 1px solid #e5e5e5; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 17px; font-weight: 600; }
+  .header p { font-size: 13px; color: #666; }
+
+  .tabs { display: flex; gap: 0; padding: 0 24px; background: #fff; border-bottom: 1px solid #e5e5e5; }
+  .tab { padding: 10px 20px; font-size: 14px; font-weight: 500; border: none; background: none; cursor: pointer; color: #666; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
+
+  .view { display: none; padding: 24px; max-width: 960px; margin: 0 auto; }
+  .view.active { display: block; }
+
+  .section-label { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+  .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-bottom: 24px; }
+  .color-btn { padding: 10px 14px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; font-size: 13px; font-weight: 600; transition: transform .12s; text-align: center; }
+  .color-btn.selected { transform: scale(1.05); box-shadow: 0 0 0 3px rgba(0,0,0,0.15); }
+
+  .q-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
+  .q-num { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+  .q-text { font-size: 15px; font-weight: 500; margin-bottom: 10px; line-height: 1.5; }
+  textarea { width: 100%; padding: 10px 12px; border-radius: 7px; border: 1px solid #ddd; font-size: 14px; line-height: 1.5; resize: vertical; min-height: 80px; font-family: inherit; background: #fafaf9; }
+  textarea:focus { outline: none; border-color: #888; background: #fff; }
+
+  .submit-btn { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; background: #fff; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; transition: background .12s; }
+  .submit-btn:hover { background: #f0f0f0; }
+  .submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .status-msg { text-align: center; font-size: 13px; color: #555; padding: 8px 0; min-height: 28px; }
+
+  .main-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+  .live-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #c0392b; padding: 5px 12px; border-radius: 999px; border: 1px solid #f5c6c6; background: #fff5f5; }
+  .pulse { width: 8px; height: 8px; border-radius: 50%; background: #c0392b; animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+  .legend-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1.5px solid; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .q-section { margin-bottom: 28px; }
+  .q-section-num { font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px; }
+  .q-section-text { font-size: 16px; font-weight: 600; margin-bottom: 12px; line-height: 1.4; }
+  .answers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+  .answer-card { padding: 12px 14px; border-radius: 8px; border-left: 4px solid; animation: fadeUp .25s ease; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+  .answer-team { font-size: 11px; font-weight: 700; margin-bottom: 5px; }
+  .answer-text { font-size: 13px; line-height: 1.55; color: #1a1a1a; }
+  .no-answers { font-size: 13px; color: #aaa; font-style: italic; }
+  .divider { border: none; border-top: 1px solid #eee; margin: 24px 0; }
+
+  .toolbar-btns { display: flex; gap: 6px; }
+  .icon-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; font-size: 13px; border-radius: 7px; border: 1px solid #ddd; background: #fff; cursor: pointer; color: #444; }
+  .icon-btn:hover { background: #f5f5f5; }
+  .icon-btn.danger { color: #c0392b; border-color: #f5c6c6; }
+  .icon-btn.danger:hover { background: #fff5f5; }
+
+  .team-indicator { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; margin-bottom: 16px; border: 2px solid; }
+  .team-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .empty-state { text-align: center; padding: 48px 24px; color: #aaa; font-size: 15px; }
+  .fs-hint { font-size: 12px; color: #aaa; text-align: right; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🌐 World Café — Live Q&A Board</h1>
+    <p>Each team submits answers from their laptop. All answers appear on the main screen in real time.</p>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('team')">👥 Team panel</button>
+  <button class="tab" onclick="switchTab('main')">📺 Main screen</button>
+</div>
+
+<div class="view active" id="view-team">
+  <div id="team-picker">
+    <p class="section-label">Select your team color</p>
+    <div class="color-grid" id="color-btns"></div>
+  </div>
+  <div id="q-form" style="display:none">
+    <div id="team-indicator-wrap"></div>
+    <div id="questions-container"></div>
+    <button class="submit-btn" id="submit-btn" onclick="submitAnswers()">Submit answers</button>
+    <div class="status-msg" id="submit-status"></div>
+  </div>
+</div>
+
+<div class="view" id="view-main">
+  <div class="main-toolbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="live-badge"><span class="pulse"></span> LIVE</span>
+      <span id="response-count" style="font-size:13px;color:#666"></span>
+    </div>
+    <div class="toolbar-btns">
+      <button class="icon-btn danger" onclick="clearAll()">🗑 Clear all</button>
+    </div>
+  </div>
+  <div class="fs-hint">Tip: press F11 for fullscreen on the projector</div>
+  <div class="legend" id="team-legend"></div>
+  <div id="main-content"></div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBeIdeInKP-iZcivr7RxeiWSQ-jdz8lOfU",
+    authDomain: "public-financial-management.firebaseapp.com",
+    databaseURL: "https://public-financial-management-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "public-financial-management",
+    storageBucket: "public-financial-management.firebasestorage.app",
+    messagingSenderId: "127654548513",
+    appId: "1:127654548513:web:0211e20e9dd5c903163f60",
+    measurementId: "G-JEWFF39RDD"
+  };
+
+  // ── EDIT YOUR QUESTIONS HERE ──────────────────────────────────────────────
+  const QUESTIONS = [
+    { id: 'q1', text: 'What are the biggest bottlenecks you see in our current process, and what would you prioritize fixing first?' },
+    { id: 'q2', text: 'What data or evidence would help us make a stronger case for the changes you are proposing?' },
+    { id: 'q3', text: 'What risks or unintended consequences should we watch out for?' },
+    { id: 'q4', text: 'If you had full authority and resources, what one thing would you do differently starting next week?' },
+  ];
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const TEAMS = [
+    { id: 'red',    label: 'Team Red',    bg: '#fff0f0', border: '#e74c3c', text: '#922b21', dot: '#e74c3c' },
+    { id: 'blue',   label: 'Team Blue',   bg: '#eef4fb', border: '#2980b9', text: '#1a5276', dot: '#2980b9' },
+    { id: 'green',  label: 'Team Green',  bg: '#eefaf3', border: '#27ae60', text: '#1d6a3a', dot: '#27ae60' },
+    { id: 'amber',  label: 'Team Amber',  bg: '#fef9ec', border: '#e67e22', text: '#935116', dot: '#e67e22' },
+    { id: 'purple', label: 'Team Purple', bg: '#f4f0fd', border: '#8e44ad', text: '#5b2c6f', dot: '#8e44ad' },
+    { id: 'teal',   label: 'Team Teal',   bg: '#e8f8f5', border: '#16a085', text: '#0e6655', dot: '#16a085' },
+  ];
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const answersRef = ref(db, 'worldcafe/answers');
+
+  let selectedTeam = null;
+
+  // Build team color buttons
+  const colorGrid = document.getElementById('color-btns');
+  TEAMS.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'color-btn';
+    btn.id = 'cbtn-' + t.id;
+    btn.style.cssText = `background:${t.bg};border-color:${t.border};color:${t.text}`;
+    btn.textContent = t.label;
+    btn.onclick = () => selectTeam(t);
+    colorGrid.appendChild(btn);
+  });
+
+  function selectTeam(team) {
+    selectedTeam = team;
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('cbtn-' + team.id).classList.add('selected');
+    document.getElementById('q-form').style.display = 'block';
+    document.getElementById('team-indicator-wrap').innerHTML =
+      `<div class="team-indicator" style="background:${team.bg};border-color:${team.border};color:${team.text}">
+        <span class="team-dot" style="background:${team.dot}"></span>${team.label}
+       </div>`;
+    buildQForm();
+  }
+
+  function buildQForm() {
+    const c = document.getElementById('questions-container');
+    c.innerHTML = QUESTIONS.map((q, i) =>
+      `<div class="q-card">
+        <div class="q-num">Question ${i + 1} of ${QUESTIONS.length}</div>
+        <div class="q-text">${q.text}</div>
+        <textarea id="ans-${q.id}" placeholder="Your team's answer…" rows="3"></textarea>
+       </div>`
+    ).join('');
+  }
+
+  window.submitAnswers = async function () {
+    if (!selectedTeam) return;
+    const btn = document.getElementById('submit-btn');
+    const status = document.getElementById('submit-status');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    const teamAnswers = {};
+    QUESTIONS.forEach(q => {
+      const v = document.getElementById('ans-' + q.id)?.value?.trim();
+      if (v) teamAnswers[q.id] = v;
+    });
+    try {
+      await set(ref(db, `worldcafe/answers/${selectedTeam.id}`), {
+        team: selectedTeam,
+        answers: teamAnswers,
+        ts: Date.now()
+      });
+      status.textContent = '✓ Submitted! You can update and resubmit anytime.';
+      setTimeout(() => status.textContent = '', 4000);
+    } catch (e) {
+      status.textContent = '⚠ Error: ' + e.message;
+    }
+    btn.disabled = false; btn.textContent = 'Submit answers';
+  };
+
+  window.switchTab = function (tab) {
+    document.querySelectorAll('.tab').forEach((t, i) =>
+      t.classList.toggle('active', (i === 0 && tab === 'team') || (i === 1 && tab === 'main'))
+    );
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + tab).classList.add('active');
+  };
+
+  window.clearAll = async function () {
+    if (!confirm('Clear ALL answers? This cannot be undone.')) return;
+    await remove(answersRef);
+  };
+
+  function renderMain(data) {
+    const teams = Object.values(data);
+    document.getElementById('response-count').textContent =
+      `${teams.length} of ${TEAMS.length} teams responded`;
+
+    document.getElementById('team-legend').innerHTML = TEAMS.map(t => {
+      const has = data[t.id];
+      return `<span class="legend-chip" style="background:${has ? t.bg : 'transparent'};border-color:${t.border};color:${t.text};opacity:${has ? 1 : .4}">
+        <span class="legend-dot" style="background:${t.dot}"></span>${t.label}${has ? ' ✓' : ''}
+      </span>`;
+    }).join('');
+
+    if (teams.length === 0) {
+      document.getElementById('main-content').innerHTML =
+        '<div class="empty-state">No answers yet — teams are still responding.</div>';
+      return;
+    }
+
+    document.getElementById('main-content').innerHTML = QUESTIONS.map((q, i) => {
+      const chips = TEAMS.map(t => {
+        const ans = data[t.id]?.answers?.[q.id];
+        if (!ans) return '';
+        return `<div class="answer-card" style="background:${t.bg};border-left-color:${t.dot}">
+          <div class="answer-team" style="color:${t.text}">${t.label}</div>
+          <div class="answer-text">${ans}</div>
+        </div>`;
+      }).join('');
+      return `<div class="q-section">
+        <div class="q-section-num">Question ${i + 1}</div>
+        <div class="q-section-text">${q.text}</div>
+        <div class="answers-grid">${chips || '<div class="no-answers">No answers yet.</div>'}</div>
+      </div>${i < QUESTIONS.length - 1 ? '<hr class="divider">' : ''}`;
+    }).join('');
+  }
+
+  // Real-time listener — instant updates, no refresh needed
+  onValue(answersRef, snap => {
+    renderMain(snap.val() || {});
+  });
+</script>
+</body>
+</html>
